@@ -3,10 +3,13 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context
-        http://www.springframework.org/schema/context/spring-context.xsd">
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
 
 
    <!-- //注册注解-->
@@ -69,4 +72,72 @@
     <bean id="boss3" class="com.liusitong.BaseInjection.Boss"
           p:car-ref="car3" p:name="1414010315刘思彤3">
     </bean>
+
+
+    <!--配置增强-->
+    <bean id="beforeAdvice" class="com.liusitong.AOP.MyBeforeAdvice"/>
+    <bean id="afterReturningAdvice" class="com.liusitong.AOP.MyAfterReturningAdvice"/>
+
+    <!--配置目标对象-->
+    <bean id="target" class="com.liusitong.AOP.NaiveWaiter"/>
+
+    <!-- 配置静态方法名匹配切面 -->
+    <bean id="staticAdvisor" class="com.liusitong.AOP.MyAdvisor">
+        <property name="advice" ref="beforeAdvice"/>
+    </bean>
+    <bean id="staticAdvisor2" class="com.liusitong.AOP.MyAdvisor">
+        <property name="advice" ref="afterReturningAdvice"/>
+    </bean>
+
+
+    <!--基于动态切面的的方法-->
+    <bean id="pointerCut" class="com.liusitong.AOP.MyPointCut"/>
+    <bean id="dynamicAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+        <property name="advice">
+            <ref bean="beforeAdvice"/>
+        </property>
+        <property name="pointcut">
+            <ref bean="pointerCut"/>
+        </property>
+    </bean>
+    <bean id="dynamicAdvisor2" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+        <property name="advice">
+            <ref bean="afterReturningAdvice"/>
+        </property>
+        <property name="pointcut">
+            <ref bean="pointerCut"/>
+        </property>
+    </bean>
+
+    <!--配置代理对象-->
+    <bean id="waiter" class="org.springframework.aop.framework.ProxyFactoryBean">
+        <!--目标对象的接口-->
+        <property name="proxyInterfaces" value="com.liusitong.AOP.Waiter"/>
+        <!--注入目标对象-->
+        <property name="target" ref="target"/>
+        <!--注入拦截器，也就是增强  注意里面的list是字面值-->
+        <property name="interceptorNames">
+            <list>
+                <idref local="beforeAdvice"/>
+                <idref local="afterReturningAdvice"/>
+            </list>
+        </property>
+        <!-- 适用什么样的代理  false 是JDK代理 true 是CGlib-->
+        <property name="proxyTargetClass" value="false"/>
+    </bean>
+
+
+    <!--实现Spring + AspectJ-->
+
+    <bean id="waiter1" class="com.liusitong.AOP.NaiveWaiter"/>
+    <bean id="myAspect" class="com.liusitong.AOP.MyAspect"/>
+    <aop:config proxy-target-class="false">
+        <aop:pointcut id="greetToPointcut" expression="execution (* greetTo(..))" />
+        <aop:aspect ref="myAspect">
+            <aop:before method="doBefore" pointcut="execution (* greetTo(..))"/>
+            <aop:after method="myAfter" pointcut-ref="greetToPointcut"/>
+        </aop:aspect>
+    </aop:config>
+
+
 </beans>
